@@ -25,7 +25,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        ShowMessage("Left click and drag to clean the window");
+        ShowMessage("Left click and drag to clean the window\nUse mouse wheel to adjust brush size");
         instructionShown = true;
     }
 

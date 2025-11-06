@@ -17,17 +17,10 @@ public class DustController : MonoBehaviour
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
-        if (sr == null)
-        {
-            Debug.LogError("DustController: SpriteRenderer component not found!");
-            return;
-        }
-        
         // Force completely unlit material - try multiple shader options
         Shader shader = Shader.Find("UI/Default"); // UI shader is always unlit
         if (shader == null) shader = Shader.Find("Sprites/Default");
         if (shader == null) shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
-        
         if (shader != null)
         {
             Material mat = new Material(shader);
@@ -36,26 +29,16 @@ public class DustController : MonoBehaviour
             mat.SetInt("_ZWrite", 0);
             mat.renderQueue = 3000;
             sr.material = mat;
-            Debug.Log($"DustController: Changed material to {shader.name}");
         }
-        else
-        {
-            Debug.LogWarning("DustController: Could not find suitable unlit shader!");
-        }
-        
-        // Explicitly set render properties
         sr.sortingLayerName = "Default";
         sr.sortingOrder = 10; // Above background, below UI
-        
         InitializeTexture();
     }
 
     void Start()
     {
-        // Fallback: if sprite is still null after Awake, reinitialize
         if (sr != null && sr.sprite == null)
         {
-            Debug.LogWarning("DustController: Sprite was null in Start, reinitializing...");
             InitializeTexture();
         }
     }
@@ -80,27 +63,20 @@ public class DustController : MonoBehaviour
     public void EraseAt(Vector2 worldPos, float radiusWorldUnits)
     {
         if (dustTexture == null) return;
-
-        // Convert world position to local space of the sprite
         Vector3 localPos = transform.InverseTransformPoint(worldPos);
         Vector2 spriteSize = sr.sprite.bounds.size;
         Vector2 normalized = new Vector2(localPos.x / spriteSize.x + 0.5f, localPos.y / spriteSize.y + 0.5f);
-
         if (normalized.x < 0f || normalized.x > 1f || normalized.y < 0f || normalized.y > 1f) return;
-
         int centerX = Mathf.RoundToInt(normalized.x * (textureWidth - 1));
         int centerY = Mathf.RoundToInt(normalized.y * (textureHeight - 1));
         int radiusPx = Mathf.RoundToInt(radiusWorldUnits * pixelsPerUnit);
         if (radiusPx <= 0) radiusPx = 1;
-
         int x0 = Mathf.Clamp(centerX - radiusPx, 0, textureWidth - 1);
         int x1 = Mathf.Clamp(centerX + radiusPx, 0, textureWidth - 1);
         int y0 = Mathf.Clamp(centerY - radiusPx, 0, textureHeight - 1);
         int y1 = Mathf.Clamp(centerY + radiusPx, 0, textureHeight - 1);
-
         Color32[] tex = dustTexture.GetPixels32();
         int clearedThisCall = 0;
-
         for (int y = y0; y <= y1; y++)
         {
             int dy = y - centerY;
@@ -122,7 +98,6 @@ public class DustController : MonoBehaviour
                 }
             }
         }
-
         if (clearedThisCall > 0)
         {
             clearedPixels += clearedThisCall;

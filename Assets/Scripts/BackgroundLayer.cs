@@ -1,53 +1,67 @@
 using UnityEngine;
+using System.IO;
 
 public class BackgroundLayer : MonoBehaviour
 {
-    public int textureWidth = 512;
-    public int textureHeight = 512;
-    public Color color1 = new Color(0.3f, 0.6f, 0.9f); // light blue
-    public Color color2 = new Color(0.2f, 0.8f, 0.3f); // light green
-    public int checkerSize = 64;
+    public string imagePath = "background.jpg";
 
     void Start()
     {
+        StartCoroutine(LoadBackground());
+    }
+
+    System.Collections.IEnumerator LoadBackground()
+    {
+        yield return null;
+
         SpriteRenderer sr = GetComponent<SpriteRenderer>();
-        if (sr == null)
-        {
-            sr = gameObject.AddComponent<SpriteRenderer>();
-        }
+        if (sr == null) sr = gameObject.AddComponent<SpriteRenderer>();
 
-        // Create a checkered pattern texture as background
-        Texture2D tex = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false);
-        tex.wrapMode = TextureWrapMode.Clamp;
-        tex.filterMode = FilterMode.Point;
-
-        Color32[] pixels = new Color32[textureWidth * textureHeight];
+        string fullPath = Path.Combine(Application.dataPath, imagePath);
         
-        for (int y = 0; y < textureHeight; y++)
+        if (File.Exists(fullPath))
         {
-            for (int x = 0; x < textureWidth; x++)
+            byte[] fileData = File.ReadAllBytes(fullPath);
+            Texture2D tex = new Texture2D(2, 2);
+            
+            if (tex.LoadImage(fileData))
             {
-                bool checker = ((x / checkerSize) + (y / checkerSize)) % 2 == 0;
-                pixels[y * textureWidth + x] = checker ? (Color32)color1 : (Color32)color2;
+                Texture2D resizedTex = ResizeTexture(tex, 512, 512);
+                Destroy(tex);
+                
+                resizedTex.wrapMode = TextureWrapMode.Clamp;
+                resizedTex.filterMode = FilterMode.Bilinear;
+
+                Sprite sprite = Sprite.Create(resizedTex, 
+                    new Rect(0, 0, 512, 512), 
+                    new Vector2(0.5f, 0.5f), 
+                    64f);
+                
+                sr.sprite = sprite;
+                sr.sortingOrder = -100;
+                
+                transform.position = Vector3.zero;
+                transform.rotation = Quaternion.identity;
+                transform.localScale = Vector3.one;
             }
         }
+    }
 
-        tex.SetPixels32(pixels);
-        tex.Apply();
-
-        // Create sprite
-        Sprite sprite = Sprite.Create(tex, new Rect(0, 0, textureWidth, textureHeight), new Vector2(0.5f, 0.5f), 64f);
-        sr.sprite = sprite;
-        sr.sortingOrder = -100; // Behind dust layer
+    Texture2D ResizeTexture(Texture2D source, int newWidth, int newHeight)
+    {
+        RenderTexture rt = RenderTexture.GetTemporary(newWidth, newHeight);
+        rt.filterMode = FilterMode.Bilinear;
         
-        // Use unlit shader
-        Shader shader = Shader.Find("UI/Default");
-        if (shader == null) shader = Shader.Find("Sprites/Default");
-        if (shader != null)
-        {
-            sr.material = new Material(shader);
-        }
-
-        Debug.Log($"BackgroundLayer: Created {textureWidth}x{textureHeight} background at sortingOrder={sr.sortingOrder}");
+        RenderTexture.active = rt;
+        Graphics.Blit(source, rt);
+        
+        Texture2D result = new Texture2D(newWidth, newHeight, TextureFormat.RGBA32, false);
+        result.ReadPixels(new Rect(0, 0, newWidth, newHeight), 0, 0);
+        result.Apply();
+        
+        RenderTexture.active = null;
+        RenderTexture.ReleaseTemporary(rt);
+        
+        return result;
     }
 }
