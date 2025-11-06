@@ -29,18 +29,25 @@ public class Brush : MonoBehaviour
     void Start()
     {
         gm = GameManager.Instance;
-        failPoints = Object.FindObjectsByType<WinPoint>(FindObjectsSortMode.None);
         mainCamera = Camera.main;
         soundManager = Object.FindFirstObjectByType<ScrubSoundManager>();
         Cursor.visible = true;
+        
+        StartCoroutine(InitializeFailPoints());
+    }
+
+    System.Collections.IEnumerator InitializeFailPoints()
+    {
+        yield return new WaitForEndOfFrame();
+        
+        failPoints = Object.FindObjectsByType<WinPoint>(FindObjectsSortMode.None);
+        Debug.Log($"Brush: Found {failPoints.Length} danger zones");
     }
 
     void Update()
     {
         // Update mouse position for cursor visualization
         UpdateMousePosition();
-        
-        // Handle brush size adjustment with scroll wheel
         HandleBrushSizeAdjustment();
         if (Input.GetMouseButtonDown(0))
         {
@@ -100,14 +107,18 @@ public class Brush : MonoBehaviour
             {
                 Vector2 p = Vector2.Lerp(lastPos, curPos, (float)i / (float)steps);
                 dustController.EraseAt(p, brushRadius);
-                foreach (var fp in failPoints)
+                
+                if (failPoints != null)
                 {
-                    if (fp == null) continue;
-                    float d = Vector2.Distance(p, fp.transform.position);
-                    if (d <= fp.radius + brushRadius)
+                    foreach (var fp in failPoints)
                     {
-                        gm.Lose("try to avoid the cracked glass! :(");
-                        return;
+                        if (fp == null) continue;
+                        float d = Vector2.Distance(p, fp.transform.position);
+                        if (d <= fp.radius + brushRadius)
+                        {
+                            gm.Lose("try to avoid the cracked glass! :(");
+                            return;
+                        }
                     }
                 }
             }
