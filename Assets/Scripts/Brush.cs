@@ -66,16 +66,13 @@ public class Brush : MonoBehaviour
         if (dragging && !gm.IsGameOver)
         {
             if (mainCamera == null) return;
-            
             var mp = Input.mousePosition;
             if (mainCamera.pixelRect.width == 0 || mainCamera.pixelRect.height == 0) return;
             if (!mainCamera.pixelRect.Contains(mp)) return;
-
             Vector2 curPos = currentMouseWorldPos;
             float curTime = Time.time;
             float dt = curTime - lastTime;
             if (dt <= 0f) dt = Time.deltaTime;
-
             float instSpeed = Vector2.Distance(curPos, lastPos) / Mathf.Max(0.0001f, dt);
             float t = 1f - Mathf.Exp(-speedSmoothing * dt);
             smoothSpeed = Mathf.Lerp(smoothSpeed, instSpeed, t);
@@ -92,16 +89,13 @@ public class Brush : MonoBehaviour
             {
                 aboveTime = Mathf.Max(0f, aboveTime - dt);
             }
-            
             float dist = Vector2.Distance(curPos, lastPos);
             int steps = Mathf.CeilToInt(dist / (brushRadius * 0.25f));
             steps = Mathf.Max(1, steps);
-            
             if (soundManager != null && steps > 0)
             {
                 soundManager.PlayScrubSound();
             }
-            
             for (int i = 0; i <= steps; i++)
             {
                 Vector2 p = Vector2.Lerp(lastPos, curPos, (float)i / (float)steps);
@@ -120,10 +114,8 @@ public class Brush : MonoBehaviour
 
             lastPos = curPos;
             lastTime = curTime;
-            
             float progress = dustController.GetClearedPercent();
             gm.UpdateProgress(progress);
-            
             if (progress >= gm.winClearPercent)
             {
                 gm.Win();
@@ -134,7 +126,6 @@ public class Brush : MonoBehaviour
     void UpdateMousePosition()
     {
         if (mainCamera == null) return;
-        
         Vector3 mousePos = Input.mousePosition;
         Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, -mainCamera.transform.position.z));
         currentMouseWorldPos = new Vector2(worldPos.x, worldPos.y);
